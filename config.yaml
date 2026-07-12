@@ -1,0 +1,26 @@
+defaultEnv: qa
+
+common:
+  1st:
+  2nd:
+  3rd:
+  4th:
+  mPin: ""
+
+qa:
+  browser: chrome
+  urls:
+    base: https://web-dev.aws.mmfss.net/user
+    login: /login
+  users:
+    admin:
+      username: admin
+
+dev:
+  browser: firefox
+  urls:
+    base: https://dev.app.com
+    login: /login
+  users:
+    admin:
+      username: dev_admin
