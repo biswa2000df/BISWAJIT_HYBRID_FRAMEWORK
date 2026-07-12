@@ -74,7 +74,10 @@ public class Android_IOS_Driver {
 					options.setCapability("deviceName", MobileConfiguration.DeviceName);
 					options.setCapability("platformVersion", MobileConfiguration.DevicePlatformVersion);
 
-					String userDirName = System.getProperty("user.name").toUpperCase();
+					String sapCode = System.getProperty("SAPCODE");
+					String userDirName = (sapCode != null && !sapCode.trim().isEmpty())
+							? sapCode
+							: System.getProperty("user.name").toUpperCase();
 
 					// 2. Test Identification
 					options.setCapability("name", ConnectToMainController.ApplicationName + " - " + ConnectToMainController.VerticalName + " - " + ConnectToMainController.Scenario + " - "  + ConnectToMainController.ScenarioNo + " - " + nameDateTime);
