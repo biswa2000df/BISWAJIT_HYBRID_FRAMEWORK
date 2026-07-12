@@ -307,6 +307,23 @@ public class Function extends ConnectToDataSheet {
                 element.sendKeys(dataSheet2Value);
             }
 
+            case "SAPCODE_SENDKEYS", "PASSWORD_SENDKEYS" -> {
+                if (element == null) {
+                    logger.error("❌ Element is null for action: {} at SI_No={}", Action, Si_No);
+                    return;
+                }
+                String credentialKey = Action.equalsIgnoreCase("SAPCODE_SENDKEYS") ? "SAPCODE" : "PASSWORD";
+                String credentialValue;
+                try {
+                    credentialValue = System.getProperty(credentialKey);
+                } catch (Exception e) {
+                    // Fallback for backward compatibility if key is not configured.
+                    credentialValue = dataSheet2Value;
+                }
+                element.sendKeys(credentialValue);
+                logger.info("{} sent to element at SI_No={}", credentialValue, Si_No);
+            }
+
             case "CLICKCLEARSENDKEYS" -> {
                 Thread.sleep(500);
                 element.click();
