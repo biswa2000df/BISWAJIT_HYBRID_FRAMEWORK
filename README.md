@@ -655,6 +655,31 @@ java -DapplicationId=MF25013100001149 \
 | `-Denv` | `defaultEnv` from YAML | Environment: `qa`, `dev`, etc. |
 | `-DapplicationId` | `MF25013100001149` | Application ID to use |
 | `-DuserInput` | *(none)* | DataSheet filename override |
+| `-DrunScenario` | *(none)* | **[NEW]** Run only this ScenarioNo (e.g. `SC_01`). Must be used **together** with `-DrunVertical`. |
+| `-DrunVertical` | *(none)* | **[NEW]** Run only this VerticalName (e.g. `XPL`). Must be used **together** with `-DrunScenario`. |
+
+> 💡 **CLI Filter Behaviour:**
+> - **Both provided** → The `MAIN_CONTROLLER` query becomes `WHERE RunStatus='Y' AND ScenarioNo='...' AND VerticalName='...'`. Only the matching scenario runs.
+> - **Only one provided** → Warning printed, filter is ignored, all `RunStatus='Y'` scenarios run (normal mode).
+> - **Neither provided** → Exactly the original behaviour — all `RunStatus='Y'` scenarios run.
+
+### Method 6: Run a Specific Scenario + Vertical (New)
+
+```bash
+# Run ONLY SC_01 for the XPL vertical (RunStatus must be Y for it)
+java -DrunScenario=SC_01 \
+     -DrunVertical=XPL \
+     -jar target/BISWAJIT_HYBRID_FRAMEWORK-B1.jar
+
+# Combined with other options
+java -DrunScenario=SC_02 \
+     -DrunVertical=BAU \
+     -DuserInputMainController="MainController.xlsx" \
+     -Denv="qa" \
+     -jar target/BISWAJIT_HYBRID_FRAMEWORK-B1.jar
+```
+
+> Even if SC_01 BAU, SC_03 XPL, SC_04 SALPL all have `RunStatus=Y`, **only** the matching scenario executes when the filter is active.
 
 ---
 
