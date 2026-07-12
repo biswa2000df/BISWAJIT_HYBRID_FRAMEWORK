@@ -1,0 +1,77 @@
+name: Automation Test Runner
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: 'Scenario Name'
+        required: true
+        default: 'SC_03'
+
+      vertical:
+        description: 'Vertical Name'
+        required: true
+        default: 'BAU'
+
+      sapcode:
+        description: 'SAP Code'
+        required: true
+
+      password:
+        description: 'Password'
+        required: true
+
+jobs:
+  run-automation:
+    runs-on: ubuntu-latest
+
+    env:
+      TZ: Asia/Kolkata
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build
+        run: mvn clean install -DskipTests
+
+      - name: Prepare output
+        run: mkdir -p output
+
+      - name: Copy files
+        run: |
+          cp target/*.jar output/ 2>/dev/null || true
+          [ -d target/libs ] && cp -r target/libs output/ || true
+          [ -f MainController.xlsx ] && cp MainController.xlsx output/ || true
+          [ -d DataSheet ] && cp -r DataSheet output/ || true
+
+      - name: Run Automation
+        run: |
+          cd output
+
+          JAR=$(ls *.jar | head -n 1)
+
+          echo "Scenario : ${{ github.event.inputs.scenario }}"
+          echo "Vertical : ${{ github.event.inputs.vertical }}"
+          echo "SAPCODE  : ${{ github.event.inputs.sapcode }}"
+
+          java \
+          -DrunScenario="${{ github.event.inputs.scenario }}" \
+          -DrunVertical="${{ github.event.inputs.vertical }}" \
+          -DSAPCODE="${{ github.event.inputs.sapcode }}" \
+          -DPASSWORD="${{ github.event.inputs.password }}" \
+          -jar "$JAR"
+
+      - name: Upload RESULT Folder
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: automation-result
+          path: output/RESULT/
