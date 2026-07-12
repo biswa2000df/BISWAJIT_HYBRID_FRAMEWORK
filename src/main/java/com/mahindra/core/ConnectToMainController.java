@@ -212,6 +212,36 @@ public class ConnectToMainController {
 						scenarioLabel, logErr.getMessage());
 			}
 
+			// ── Re-log CLI filter state into the now-open scenario log file ──────────────
+			// The filter check runs in loadAndGroupMainControllerRows() BEFORE this log
+			// file exists, so logger.warn() there has no file appender yet.
+			// We re-read system properties here (they never change during a JVM run)
+			// and write the same message again so it is captured in the scenario log.
+			// ─────────────────────────────────────────────────────────────────────────────
+			{
+				String _rawCliScenario = System.getProperty("runScenario", "").trim();
+				String _rawCliVertical = System.getProperty("runVertical", "").trim();
+				boolean _bothProvided  = !_rawCliScenario.isEmpty() && !_rawCliVertical.isEmpty();
+				boolean _partialOnly   = (!_rawCliScenario.isEmpty() || !_rawCliVertical.isEmpty()) && !_bothProvided;
+
+				if (_bothProvided) {
+					logger.info("\n🎯 CLI SCENARIO FILTER IS ACTIVE\n"
+							+ "   👉 -DrunScenario = '{}'\n"
+							+ "   👉 -DrunVertical = '{}'\n"
+							+ "   👉 RunStatus='Y' is still validated in query",
+							_rawCliScenario, _rawCliVertical);
+				} else if (_partialOnly) {
+					logger.warn("\n⚠️  CLI FILTER WARNING: Both -DrunScenario AND -DrunVertical must be provided together.\n"
+							+ "   👉 -DrunScenario = '{}'  (provided: {})\n"
+							+ "   👉 -DrunVertical = '{}'  (provided: {})\n"
+							+ "   👉 Falling back to NORMAL mode: all RunStatus='Y' scenarios will run.",
+							_rawCliScenario, !_rawCliScenario.isEmpty(),
+							_rawCliVertical, !_rawCliVertical.isEmpty());
+				}
+				// If neither was provided: nothing to log — normal execution, no noise.
+			}
+			// ─────────────────────────────────────────────────────────────────────────────
+
 			// ── Execute each process (sheet) within this scenario ──
 			for (Map<String, String> row : processRows) {
 
@@ -337,6 +367,42 @@ public class ConnectToMainController {
 	// ════════════════════════════════════════════════════════════════
 	private static LinkedHashMap<String, List<Map<String, String>>> loadAndGroupMainControllerRows() {
 
+		// ── CLI filter: -DrunScenario=SC_01  -DrunVertical=XPL ──────────────────────
+		// When BOTH are provided and non-empty → the main query adds AND ScenarioNo
+		// AND VerticalName so only that specific scenario's rows are returned.
+		// When only one (or neither) is provided → query stays RunStatus='Y' only
+		// (existing behaviour, nothing changes).
+		String cliScenario = System.getProperty("runScenario", "").trim();
+		String cliVertical = System.getProperty("runVertical", "").trim();
+		boolean cliFilterActive = !cliScenario.isEmpty() && !cliVertical.isEmpty();
+
+		if (cliFilterActive) {
+			System.out.println("\n╔══════════════════════════════════════════════════════╗");
+			System.out.println("║        🎯 CLI SCENARIO FILTER IS ACTIVE              ║");
+			System.out.println("╠══════════════════════════════════════════════════════╣");
+			System.out.println("║  ScenarioNo  : " + String.format("%-38s", cliScenario) + "║");
+			System.out.println("║  Vertical    : " + String.format("%-38s", cliVertical) + "║");
+			System.out.println("║  RunStatus='Y' is still validated in query           ║");
+			System.out.println("╚══════════════════════════════════════════════════════╝\n");
+			logger.info("CLI filter active → runScenario='{}', runVertical='{}'", cliScenario, cliVertical);
+		} else if (!cliScenario.isEmpty() || !cliVertical.isEmpty()) {
+			// Only one of the two was provided — warn and fall back to full execution
+			System.out.println("\n⚠️  CLI FILTER WARNING: Both -DrunScenario AND -DrunVertical must be provided together.");
+			System.out.println("   👉 -DrunScenario = '" + cliScenario + "'  (provided: " + !cliScenario.isEmpty() + ")");
+			System.out.println("   👉 -DrunVertical = '" + cliVertical + "'  (provided: " + !cliVertical.isEmpty() + ")");
+			System.out.println("   👉 Falling back to NORMAL mode: all RunStatus='Y' scenarios will run.\n");
+			logger.warn("\n⚠️  CLI FILTER WARNING: Both -DrunScenario AND -DrunVertical must be provided together.\n"
+					+ "   👉 -DrunScenario = '{}'  (provided: {})\n"
+					+ "   👉 -DrunVertical = '{}'  (provided: {})\n"
+					+ "   👉 Falling back to NORMAL mode: all RunStatus='Y' scenarios will run.",
+					cliScenario, !cliScenario.isEmpty(),
+					cliVertical, !cliVertical.isEmpty());
+			cliScenario = "";
+			cliVertical = "";
+			cliFilterActive = false;
+		}
+		// ─────────────────────────────────────────────────────────────────────────────
+
 		LinkedHashMap<String, List<Map<String, String>>> groups = new LinkedHashMap<>();
 		Connection connection = null;
 		Recordset recordset = null;
@@ -383,9 +449,23 @@ public class ConnectToMainController {
 
 					recordset.close();
 
-					// ── 2. Read RunStatus=Y rows ──
-					recordset = connection.executeQuery(
+					// ── 2. Build the main data query ─────────────────────────────────────────────
+					// Base:   RunStatus='Y'  (always applied — existing behaviour)
+					// Extra:  AND ScenarioNo / AND VerticalName added ONLY when the CLI filter
+					//         is active AND the column actually exists in the sheet.
+					// ─────────────────────────────────────────────────────────────────────────────
+					StringBuilder mainQuery = new StringBuilder(
 							"SELECT * FROM MAIN_CONTROLLER Where RunStatus='Y'");
+
+					if (cliFilterActive && hasScenarioNo) {
+						mainQuery.append(" AND ScenarioNo='").append(cliScenario).append("'");
+					}
+					if (cliFilterActive && hasVerticalName) {
+						mainQuery.append(" AND VerticalName='").append(cliVertical).append("'");
+					}
+
+					logger.info("MAIN_CONTROLLER query: {}", mainQuery);
+					recordset = connection.executeQuery(mainQuery.toString());
 
 					if (recordset == null) {
 						System.out.println("⚠️ No rows with RunStatus='Y' in MAIN_CONTROLLER.");
