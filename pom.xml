@@ -1,220 +1,173 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<groupId>BISWAJIT_SCRIPTLESS_AUTOMATION_FRAMEWORK</groupId>
-	<artifactId>BISWAJIT_HYBRID_FRAMEWORK</artifactId>
-	<version>B1</version>
-	<packaging>jar</packaging>
-	<name>BISWAJIT_SCRIPTLESS_AUTOMATION_FRAMEWORK</name>
-	<description>This is a hybrid framework which are used to no need to write the script to perform web and mobile testing.</description>
+<?xml version="1.0" encoding="UTF-8"?>
+		<project xmlns="http://maven.apache.org/POM/4.0.0"
+				 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+				 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+			<modelVersion>4.0.0</modelVersion>
 
+			<!-- ====================================================================== -->
+			<!-- Project Coordinates & Metadata                                         -->
+			<!-- ====================================================================== -->
+			<groupId>BISWAJIT_SCRIPTLESS_AUTOMATION_FRAMEWORK</groupId>
+			<artifactId>BISWAJIT_HYBRID_FRAMEWORK</artifactId>
+			<version>B1</version>
+			<packaging>jar</packaging>
+			<name>BISWAJIT_SCRIPTLESS_AUTOMATION_FRAMEWORK</name>
+			<description>Hybrid framework eliminating the need to write scripts for web and mobile testing.</description>
 
-	<properties>
-		<maven.compiler.source>11</maven.compiler.source>
-		<maven.compiler.target>11</maven.compiler.target>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-	</properties>
-	
-	  <repositories>
-        <repository>
-            <id>central</id>
-            <url>https://repo.maven.apache.org/maven2</url>
-        </repository>
-    </repositories>
+			<!-- ====================================================================== -->
+			<!-- Properties (Centralized Version Management)                            -->
+			<!-- ====================================================================== -->
+			<properties>
+				<!-- Build Settings -->
+				<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+				<java.version>16</java.version>
+				<maven.compiler.source>${java.version}</maven.compiler.source>
+				<maven.compiler.target>${java.version}</maven.compiler.target>
 
-	<dependencies>
+				<!-- Dependency Versions -->
+				<selenium.version>4.32.0</selenium.version>
+				<appium.version>9.4.0</appium.version>
+				<poi.version>3.17</poi.version>
+				<fillo.version>1.18</fillo.version>
+				<commons-io.version>2.22.0</commons-io.version>
+				<extentreports.version>3.1.5</extentreports.version>
+				<javax.mail.version>1.6.2</javax.mail.version>
+				<log4j.version>2.26.0</log4j.version>
 
-		<dependency>
-			<groupId>org.seleniumhq.selenium</groupId>
-			<artifactId>selenium-java</artifactId>
-			<version>4.32.0</version>
-			<scope>compile</scope>
-		</dependency>
+				<!-- Plugin Versions -->
+				<compiler-plugin.version>3.11.0</compiler-plugin.version>
+				<jar-plugin.version>3.3.0</jar-plugin.version>
+				<dependency-plugin.version>3.5.0</dependency-plugin.version>
+				<surefire-plugin.version>3.1.2</surefire-plugin.version>
+			</properties>
 
-		<dependency>
-			<groupId>io.appium</groupId>
-			<artifactId>java-client</artifactId>
-			<version>9.4.0</version>
-		</dependency>
+			<!-- ====================================================================== -->
+			<!-- Dependencies                                                           -->
+			<!-- ====================================================================== -->
+			<dependencies>
 
-		<dependency>
-			<groupId>org.apache.poi</groupId>
-			<artifactId>poi</artifactId>
-			<version>3.17</version>
-		</dependency>
+				<!-- Core Automation: Selenium & Appium -->
+				<dependency>
+					<groupId>org.seleniumhq.selenium</groupId>
+					<artifactId>selenium-java</artifactId>
+					<version>${selenium.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>io.appium</groupId>
+					<artifactId>java-client</artifactId>
+					<version>${appium.version}</version>
+				</dependency>
 
-		<dependency>
-			<groupId>org.apache.poi</groupId>
-			<artifactId>poi-ooxml</artifactId>
-			<version>3.17</version>
-		</dependency>
+				<!-- Data Handling: Excel & Database -->
+				<dependency>
+					<groupId>org.apache.poi</groupId>
+					<artifactId>poi</artifactId>
+					<version>${poi.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.poi</groupId>
+					<artifactId>poi-ooxml</artifactId>
+					<version>${poi.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>com.codoid.products</groupId>
+					<artifactId>fillo</artifactId>
+					<version>${fillo.version}</version>
+				</dependency>
 
-		<!-- https://mvnrepository.com/artifact/com.codoid.products/fillo -->
-		<dependency>
-			<groupId>com.codoid.products</groupId>
-			<artifactId>fillo</artifactId>
-			<version>1.18</version>
-		</dependency>
+				<!-- Reporting & Logging -->
+				<dependency>
+					<groupId>com.aventstack</groupId>
+					<artifactId>extentreports</artifactId>
+					<version>${extentreports.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.logging.log4j</groupId>
+					<artifactId>log4j-api</artifactId>
+					<version>${log4j.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.logging.log4j</groupId>
+					<artifactId>log4j-core</artifactId>
+					<version>${log4j.version}</version>
+				</dependency>
 
-		<!-- Source: https://mvnrepository.com/artifact/commons-io/commons-io -->
-		<dependency>
-			<groupId>commons-io</groupId>
-			<artifactId>commons-io</artifactId>
-			<version>2.22.0</version>
-		</dependency>
+				<!-- Utilities -->
+				<dependency>
+					<groupId>commons-io</groupId>
+					<artifactId>commons-io</artifactId>
+					<version>${commons-io.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>com.sun.mail</groupId>
+					<artifactId>javax.mail</artifactId>
+					<version>${javax.mail.version}</version>
+				</dependency>
 
-		<dependency>
-			<groupId>com.aventstack</groupId>
-			<artifactId>extentreports</artifactId>
-			<version>3.1.5</version>
-		</dependency>
+			</dependencies>
 
-		<dependency>
-			<groupId>com.sun.mail</groupId>
-			<artifactId>javax.mail</artifactId>
-			<version>1.6.2</version>
-		</dependency>
+			<!-- ====================================================================== -->
+			<!-- Build & Plugins                                                        -->
+			<!-- ====================================================================== -->
+			<build>
+				<plugins>
 
-		<dependency>
-			<groupId>io.rest-assured</groupId>
-			<artifactId>rest-assured</artifactId>
-			<version>5.3.0</version>
-		</dependency>
+					<!-- 1. Compiler Plugin -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<version>${compiler-plugin.version}</version>
+						<!-- Source and target are automatically inherited from properties -->
+					</plugin>
 
-		<dependency>
-			<groupId>io.rest-assured</groupId>
-			<artifactId>json-path</artifactId>
-			<version>5.3.0</version>
-		</dependency>
-
-		<dependency>
-			<groupId>com.github.javafaker</groupId>
-			<artifactId>javafaker</artifactId>
-			<version>1.0.2</version>
-		</dependency>
-		
-		<!--<dependency>
-			<groupId>com.github.stephenc.monte</groupId>
-			<artifactId>monte-screen-recorder</artifactId>
-			<version>0.7.7.0</version>
-		</dependency>-->
-		
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-api</artifactId>
-			<version>2.26.0</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-core</artifactId>
-			<version>2.26.0</version>
-		</dependency>
-
-		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind -->
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-databind</artifactId>
-			<version>2.22.0</version>
-			<scope>compile</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-text</artifactId>
-			<version>1.10.0</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>20240303</version>
-		</dependency>
-
-	</dependencies>
-
-
-	
-
-
-
-	<build>
-		<plugins>
-		
-		 <!-- Compiler Plugin -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
-                <configuration>
-                    <source>16</source>
-                    <target>16</target>
-                </configuration>
-            </plugin>
-		
-		
-			<!--<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>3.0.0-M5</version>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-site-plugin</artifactId>
-				<version>3.7.1</version>
-			</plugin>-->
-
-
-<!-- JAR Plugin -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-jar-plugin</artifactId>
-				<version>3.3.0</version>
-				<configuration>
-					<archive>
-						<manifest>
-							<addClasspath>true</addClasspath>
-							<classpathPrefix>libs/</classpathPrefix>
-							<mainClass>com.mahindra.core.Framework</mainClass>
-						</manifest>
-					</archive>
-				</configuration>
-			</plugin>
-
-
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-dependency-plugin</artifactId>
-				<version>3.5.0</version>
-				<executions>
-					<execution>
-						<id>copy-dependencies</id>
-						<phase>prepare-package</phase>
-						<goals>
-							<goal>copy-dependencies</goal>
-						</goals>
+					<!-- 2. Surefire Plugin (Test Runner) -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<version>${surefire-plugin.version}</version>
 						<configuration>
-							<outputDirectory>
-								${project.build.directory}/libs
-							</outputDirectory>
+							<includes>
+								<include>**/Framework.java</include>
+							</includes>
 						</configuration>
-					</execution>
-				</executions>
-			</plugin>
+					</plugin>
 
-			<!-- Configure Surefire Plugin to run your main class as a test -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				 <version>3.1.2</version>
-				<configuration>
-					<includes>
-						<include>**/Framework.java</include>
-					</includes>
-				</configuration>
-			</plugin>
+					<!-- 3. JAR Creation Plugin -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-jar-plugin</artifactId>
+						<version>${jar-plugin.version}</version>
+						<configuration>
+							<archive>
+								<manifest>
+									<addClasspath>true</addClasspath>
+									<classpathPrefix>libs/</classpathPrefix>
+									<mainClass>com.mahindra.core.Framework</mainClass>
+								</manifest>
+							</archive>
+						</configuration>
+					</plugin>
 
-		</plugins>
-	</build>
+					<!-- 4. Dependency Copy Plugin -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-dependency-plugin</artifactId>
+						<version>${dependency-plugin.version}</version>
+						<executions>
+							<execution>
+								<id>copy-dependencies</id>
+								<phase>prepare-package</phase>
+								<goals>
+									<goal>copy-dependencies</goal>
+								</goals>
+								<configuration>
+									<outputDirectory>${project.build.directory}/libs</outputDirectory>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
 
+				</plugins>
+			</build>
 
-</project>
+		</project>
