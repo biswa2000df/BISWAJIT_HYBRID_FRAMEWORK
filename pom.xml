@@ -33,6 +33,7 @@
 				<extentreports.version>3.1.5</extentreports.version>
 				<javax.mail.version>1.6.2</javax.mail.version>
 				<log4j.version>2.26.0</log4j.version>
+				<snakeyaml.version>2.2</snakeyaml.version>
 
 				<!-- Plugin Versions -->
 				<compiler-plugin.version>3.11.0</compiler-plugin.version>
@@ -102,6 +103,13 @@
 					<groupId>com.sun.mail</groupId>
 					<artifactId>javax.mail</artifactId>
 					<version>${javax.mail.version}</version>
+				</dependency>
+
+				<!-- YAML Parsing -->
+				<dependency>
+					<groupId>org.yaml</groupId>
+					<artifactId>snakeyaml</artifactId>
+					<version>${snakeyaml.version}</version>
 				</dependency>
 
 			</dependencies>

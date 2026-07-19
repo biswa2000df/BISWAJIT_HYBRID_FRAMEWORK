@@ -44,7 +44,6 @@ import com.aventstack.extentreports.reporter.configuration.Theme;
 import com.codoid.products.fillo.Connection;
 import com.codoid.products.fillo.Fillo;
 import com.codoid.products.fillo.Recordset;
-import com.github.javafaker.Faker;
 
 public class UtilsActivity extends ConnectToDataSheet {
 

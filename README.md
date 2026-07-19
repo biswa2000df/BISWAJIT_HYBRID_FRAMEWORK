@@ -96,7 +96,7 @@ The entire engine is packaged as a **single JAR file**. Give it:
 
 ```mermaid
 graph TB
-    subgraph "📦 com.mahindra.superapp"
+    subgraph "📦 com.mahindra"
         direction TB
         
         subgraph CORE["🔵 core — Orchestration Engine"]
@@ -458,7 +458,7 @@ This file contains **4 sheets**:
 |--------|-------------|---------|
 | `Process` | Must match MAIN_CONTROLLER Process | LOGIN |
 | `RunStatus` | Y to use | Y |
-| `App_PackageName` | Android package name | com.mahindra.superapp |
+| `App_PackageName` | Android package name | com.mahindra |
 | `App_PackageActivityName` | Launch activity | .ui.SplashActivity |
 | `DeviceName` | Device name | Samsung Galaxy S21 |
 | `DevicePlatform` | Android or iOS | Android |
@@ -532,7 +532,7 @@ BISWAJIT-HYBRID-FRAMEWORK/
 ├── 📄 MainController.xlsx              # 🎯 Master control file
 ├── 📄 ScenarioExecutionReport.xlsx     # 📊 Auto-generated audit trail
 │
-├── 📂 src/main/java/com/mahindra/superapp/
+├── 📂 src/main/java/com/mahindra/
 │   ├── 📂 core/                        # 🔵 Orchestration engine
 │   │   ├── Framework.java              #    Entry point (main method)
 │   │   ├── ConnectToMainController.java#    Scenario loop + grouping

@@ -34,7 +34,7 @@ public class Framework {
 
 		// java -DuserInputMainController="/Users/mf_pnk-100005482/Documents/SuperApp/SUPERAPP-HYBRID-FRAMEWORK/XPL_MainController.xlsx" -DuserInputDataSheetFolderPath="/Users/mf_pnk-100005482/Documents/SuperApp/SUPERAPP-HYBRID-FRAMEWORK/DataSheet" -jar target/BISWAJIT_HYBRID_FRAMEWORK-B1.jar
 
-//java -DuserInputMainController="/Users/mf_pnk-100005482/Documents/SuperApp/SUPERAPP-HYBRID-FRAMEWORK/XPL_MainController.xlsx" \-DuserInputDataSheetFolderPath="/Users/mf_pnk-100005482/Documents/SuperApp/SUPERAPP-HYBRID-FRAMEWORK/DataSheet" \-DuserInputConfigFilePath="/Users/mf_pnk-100005482/Documents/Biswajit/BISWAJIT-HYBRID-FRAMEWORK/config.yaml" \-Denv="qa" \-DSAPCODE="your_sap_code" \-DPASSWORD="your_password" \-jar target/BISWAJIT_HYBRID_FRAMEWORK-B1.jar
+//		java -DuserInputMainController="/Users/mf_pnk-100005482/Documents/SuperApp/SUPERAPP-HYBRID-FRAMEWORK/XPL_MainController.xlsx" \-DuserInputDataSheetFolderPath="/Users/mf_pnk-100005482/Documents/SuperApp/SUPERAPP-HYBRID-FRAMEWORK/DataSheet" \-DuserInputConfigFilePath="/Users/mf_pnk-100005482/Documents/Biswajit/BISWAJIT-HYBRID-FRAMEWORK/config.yaml" \-Denv="qa" \-DSAPCODE="your_sap_code" \-DPASSWORD="your_password" \-jar target/BISWAJIT_HYBRID_FRAMEWORK-B1.jar
 
 
 //		java -DuserInputDataSheetFolderPath="/Users/mf_pnk-100005482/Documents/Biswajit/BISWAJIT-HYBRID-FRAMEWORK/DataSheet" -DSAPCODE="100005482" -DPASSWORD="Kanha" -jar target/BISWAJIT_HYBRID_FRAMEWORK-B1.jar
