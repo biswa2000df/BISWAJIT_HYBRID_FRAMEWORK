@@ -53,6 +53,8 @@ public class Function extends ConnectToDataSheet {
             "STARTBROWSER", "NEWWINDOWBROWSWRTAB", "BROWSERURL",
             "NAVIGATEBACK", "PAGEREFRESH", "CLICK", "JAVASCRIPTCLICK",
             "CHECKANDCLICK", "WAIT_FOR_NEXTELEMENT");
+    private static final Duration DEFAULT_ACTION_TIMEOUT = Duration.ofSeconds(10);
+    private static final Duration SHORT_ACTION_TIMEOUT = Duration.ofSeconds(3);
 
     Function() {
         element = LocatorManager.webElement;
@@ -155,6 +157,9 @@ public class Function extends ConnectToDataSheet {
             }
 
             case "SENDKEYSANDENTERKEY" -> {
+                if (!ensureElementPresent("SENDKEYSANDENTERKEY")) {
+                    return;
+                }
                 element.sendKeys(dataSheet2Value, Keys.ENTER);
             }
 
@@ -164,6 +169,9 @@ public class Function extends ConnectToDataSheet {
             }
 
             case "APPLICATIONIDSEARCHONSFDC" -> {
+                if (!ensureElementPresent("APPLICATIONIDSEARCHONSFDC")) {
+                    return;
+                }
                 element.sendKeys(applicationID, Keys.ENTER);
             }
 
@@ -187,17 +195,17 @@ public class Function extends ConnectToDataSheet {
             }
 
             case "UPDATEAPPLICANTNAME" -> {
-                applicantName = getText.substring(0, getText.indexOf(" "));
+                applicantName = extractFirstWord(getText, "UPDATEAPPLICANTNAME");
                 System.out.println("applicantName = " + applicantName);
             }
 
             case "UPDATECOAPPLICANTNAME" -> {
-                coApplicantName = getText.substring(0, getText.indexOf(" "));
+                coApplicantName = extractFirstWord(getText, "UPDATECOAPPLICANTNAME");
                 System.out.println("coApplicantName = " + coApplicantName);
             }
 
             case "UPDATEGUARANTORNAME" -> {
-                guarantorName = getText.substring(0, getText.indexOf(" "));
+                guarantorName = extractFirstWord(getText, "UPDATEGUARANTORNAME");
                 System.out.println("guarantorName = " + guarantorName);
             }
 
@@ -295,15 +303,22 @@ public class Function extends ConnectToDataSheet {
             case "CHECKANDCLICK" -> {
                 if (ConnectToMainController.PlatForm.equalsIgnoreCase("Web"))
                     locatorManager.waitForPageReady();
+                logActionStart("CHECKANDCLICK", PropertyValue);
                 try {
-                    WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+                    WebDriverWait wait = new WebDriverWait(driver, DEFAULT_ACTION_TIMEOUT);
                     wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath(PropertyValue))).click();
-                } catch (Exception e) {
+                    logActionSuccess("CHECKANDCLICK", PropertyValue);
+                } catch (TimeoutException | org.openqa.selenium.NoSuchElementException | ElementClickInterceptedException e) {
+                    logger.warn("CHECKANDCLICK skipped: element not found/clickable within timeout. xpath={}, SI_No={}, reason={}",
+                            PropertyValue, Si_No, e.getMessage());
                     System.out.println("Element is not There...");
                 }
             }
 
             case "SENDKEYS" -> {
+                if (!ensureElementPresent("SENDKEYS")) {
+                    return;
+                }
                 element.sendKeys(dataSheet2Value);
             }
 
@@ -321,15 +336,18 @@ public class Function extends ConnectToDataSheet {
                     credentialValue = dataSheet2Value;
                 }
                 element.sendKeys(credentialValue);
-                logger.info("{} sent to element at SI_No={}", credentialValue, Si_No);
+                logger.info("{} sent to element at SI_No={}", credentialKey, Si_No);
             }
 
             case "CLICKCLEARSENDKEYS" -> {
-                Thread.sleep(500);
-                element.click();
-                Thread.sleep(500);
+                if (!ensureElementPresent("CLICKCLEARSENDKEYS")) {
+                    return;
+                }
+                WebDriverWait wait = new WebDriverWait(driver, SHORT_ACTION_TIMEOUT);
+                wait.until(ExpectedConditions.elementToBeClickable(element)).click();
+                wait.until(ExpectedConditions.visibilityOf(element));
                 element.clear();
-                Thread.sleep(500);
+                wait.until(ExpectedConditions.elementToBeClickable(element));
                 element.sendKeys(dataSheet2Value);
             }
 
@@ -500,7 +518,6 @@ public class Function extends ConnectToDataSheet {
             }
 
             case "PENNYDROP" -> {
-                Thread.sleep(5000);
                 WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
                 try {
                     wait.until(ExpectedConditions
@@ -523,11 +540,15 @@ public class Function extends ConnectToDataSheet {
 
             case "AGAINCLICKONSEARCHBAR" -> {
                 driver.findElement(By.xpath("//button[contains(@aria-label,'" + applicationID + "')]")).click();
-                Thread.sleep(3000);
+                By searchInputPrimary = By.xpath("//input[@placeholder='Search...']");
+                By searchInputFallback = By.xpath("//input[@placeholder='Search Cases and more...']");
+                new WebDriverWait(driver, Duration.ofSeconds(10)).until(ExpectedConditions.or(
+                        ExpectedConditions.visibilityOfElementLocated(searchInputPrimary),
+                        ExpectedConditions.visibilityOfElementLocated(searchInputFallback)));
                 try {
-                    driver.findElement(By.xpath("//input[@placeholder='Search...']")).sendKeys(Keys.ENTER);
+                    driver.findElement(searchInputPrimary).sendKeys(Keys.ENTER);
                 } catch (Exception e) {
-                    driver.findElement(By.xpath("//input[@placeholder='Search Cases and more...']"))
+                    driver.findElement(searchInputFallback)
                             .sendKeys(Keys.ENTER);
                 }
             }
@@ -573,17 +594,23 @@ public class Function extends ConnectToDataSheet {
             case "UNTILSCROLLDOWNELEMENTVIEW" -> {
                 boolean isElementVisible = false;
                 int scrollCount = 0;
+                final int maxScrollCount = 15;
+                Throwable lastException = null;
 
-                while (!isElementVisible && scrollCount < 15) {
+                while (!isElementVisible && scrollCount < maxScrollCount) {
                     try {
                         String xpathExpression = PropertyValue;
                         element = driver.findElement(By.xpath(xpathExpression));
 
                         if (element.isDisplayed()) {
                             isElementVisible = true;
+                            logger.info(
+                                    "UNTILSCROLLDOWNELEMENTVIEW: Element found after {} downward scroll attempt(s). xpath={}",
+                                    scrollCount, PropertyValue);
                             break;
                         }
-                    } catch (Exception e) {
+                    } catch (org.openqa.selenium.NoSuchElementException | StaleElementReferenceException e) {
+                        lastException = e;
                         scrollCount++;
 
                         int screenHeight = driver.manage().window().getSize().getHeight();
@@ -603,6 +630,14 @@ public class Function extends ConnectToDataSheet {
                         swipe.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
                         ((AndroidDriver) driver).perform(Collections.singletonList(swipe));
                     }
+                }
+
+                if (!isElementVisible) {
+                    logger.error(
+                            "UNTILSCROLLDOWNELEMENTVIEW failed: element not found after {} downward scroll(s). xpath={}",
+                            maxScrollCount, PropertyValue, lastException);
+                    throw new org.openqa.selenium.NoSuchElementException(
+                            "Element not found after " + maxScrollCount + " downward scrolls. xpath=" + PropertyValue);
                 }
             }
 
@@ -628,17 +663,22 @@ public class Function extends ConnectToDataSheet {
             case "UNTILSCROLLUPELEMENTVIEW" -> {
                 boolean isElementVisible = false;
                 int scrollCount = 0;
+                final int maxScrollCount = 15;
+                Throwable lastException = null;
 
-                while (!isElementVisible && scrollCount < 15) {
+                while (!isElementVisible && scrollCount < maxScrollCount) {
                     try {
                         String xpathExpression = PropertyValue;
                         element = driver.findElement(By.xpath(xpathExpression));
 
                         if (element.isDisplayed()) {
                             isElementVisible = true;
+                            logger.info("UNTILSCROLLUPELEMENTVIEW: Element found after {} upward scroll attempt(s). xpath={}",
+                                    scrollCount, PropertyValue);
                             break;
                         }
-                    } catch (Exception e) {
+                    } catch (org.openqa.selenium.NoSuchElementException | StaleElementReferenceException e) {
+                        lastException = e;
                         scrollCount++;
 
                         int screenHeight = driver.manage().window().getSize().getHeight();
@@ -658,6 +698,14 @@ public class Function extends ConnectToDataSheet {
                         swipe.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
                         ((AndroidDriver) driver).perform(Collections.singletonList(swipe));
                     }
+                }
+
+                if (!isElementVisible) {
+                    logger.error(
+                            "UNTILSCROLLUPELEMENTVIEW failed: element not found after {} upward scroll(s). xpath={}",
+                            maxScrollCount, PropertyValue, lastException);
+                    throw new org.openqa.selenium.NoSuchElementException(
+                            "Element not found after " + maxScrollCount + " upward scrolls. xpath=" + PropertyValue);
                 }
             }
 
@@ -973,7 +1021,8 @@ public class Function extends ConnectToDataSheet {
 
                         } catch (Exception w3cFail) {
                             System.out.println("Swipe failed on attempt #" + scrollCount);
-                            w3cFail.printStackTrace();
+                            logger.warn("SELECTDROPDOWNVALUE swipe failed at attempt {} for xpath={}. reason={}",
+                                    scrollCount, PropertyValue, w3cFail.getMessage());
                         }
                     }
                 }
@@ -1046,11 +1095,10 @@ public class Function extends ConnectToDataSheet {
                     wait.until(ExpectedConditions
                             .visibilityOfElementLocated(By.xpath("//android.widget.Button[@content-desc='Proceed']")))
                             .click();
-                    Thread.sleep(5000);
-                    wait.until(ExpectedConditions
-                            .visibilityOfElementLocated(By.xpath("//android.widget.Button[@content-desc='Proceed']")))
-                            .click();
+                    wait.until(ExpectedConditions.elementToBeClickable(
+                            By.xpath("//android.widget.Button[@content-desc='Proceed']"))).click();
                 } catch (Exception e) {
+                    logger.info("DETAILSINCOMPLETEPOPUP not shown at SI_No={} for xpath={}", Si_No, PropertyValue);
                     System.out.println("Thanks God Details Incomplete popup not came");
                 }
             }
@@ -1070,13 +1118,15 @@ public class Function extends ConnectToDataSheet {
 
             case "KYCVERIFY" -> {
                 try {
-                    driver.findElement(By.xpath(PropertyValue + "[2]")).click();
-                    Thread.sleep(1000);
-                    driver.findElement(By.xpath(PropertyValue + "[2]")).sendKeys(dataSheet2Value);
+                    By secondInput = By.xpath(PropertyValue + "[2]");
+                    WebDriverWait wait = new WebDriverWait(driver, DEFAULT_ACTION_TIMEOUT);
+                    wait.until(ExpectedConditions.elementToBeClickable(secondInput)).click();
+                    wait.until(ExpectedConditions.visibilityOfElementLocated(secondInput)).sendKeys(dataSheet2Value);
                 } catch (Exception e) {
-                    driver.findElement(By.xpath(PropertyValue + "[1]")).click();
-                    Thread.sleep(1000);
-                    driver.findElement(By.xpath(PropertyValue + "[1]")).sendKeys(dataSheet2Value);
+                    By firstInput = By.xpath(PropertyValue + "[1]");
+                    WebDriverWait wait = new WebDriverWait(driver, DEFAULT_ACTION_TIMEOUT);
+                    wait.until(ExpectedConditions.elementToBeClickable(firstInput)).click();
+                    wait.until(ExpectedConditions.visibilityOfElementLocated(firstInput)).sendKeys(dataSheet2Value);
                 }
             }
 
@@ -1107,17 +1157,6 @@ public class Function extends ConnectToDataSheet {
                         By.xpath("//android.widget.Button[contains(@content-desc,'" + dataSheet2Value + "')]")).click();
             }
 
-            case "DND" -> {
-                try {
-                    Process process = Runtime.getRuntime()
-                            .exec("adb shell am start -a android.settings.ZEN_MODE_SETTINGS");
-                    Thread.sleep(2000);
-                    driver.findElement(By.xpath(PropertyValue)).click();
-                    driver.navigate().back();
-                } catch (Exception e) {
-                    System.out.println("DND action failed: " + e.getMessage());
-                }
-            }
 
             case "CPVSCROLL" -> {
 
@@ -1267,14 +1306,18 @@ public class Function extends ConnectToDataSheet {
             }
 
             case "CLICKONPERTICULARAPPLICATIONID" -> {
-                Thread.sleep(10000);
-                List<WebElement> Application_Elements = driver.findElements(By.xpath(PropertyValue));
+                List<WebElement> Application_Elements = new WebDriverWait(driver, Duration.ofSeconds(15))
+                        .until(ExpectedConditions.presenceOfAllElementsLocatedBy(By.xpath(PropertyValue)));
                 System.out.println("===================================================" + Application_Elements.size());
+                logger.info("CLICKONPERTICULARAPPLICATIONID: found {} candidate elements for xpath={}",
+                        Application_Elements.size(), PropertyValue);
                 for (WebElement ele : Application_Elements) {
                     String applicationNo = ele.getText();
                     System.out.println(applicationNo);
+                    logger.info("CLICKONPERTICULARAPPLICATIONID: checking applicationNo={}", applicationNo);
                     if (applicationNo.equalsIgnoreCase(applicationID)) {
                         ele.click();
+                        logger.info("CLICKONPERTICULARAPPLICATIONID: matched and clicked applicationID={}", applicationID);
                     }
                 }
             }
@@ -1307,12 +1350,14 @@ public class Function extends ConnectToDataSheet {
                         Object result = js.executeScript(command);
                         String response = String.valueOf(result);
                         System.out.println("AI Attempt " + attempt + " Response : " + response);
+                        logger.info("BROWSERSTACKAI attempt {} response={}", attempt, response);
                         if (response.contains("\"execution_status\":\"completed\"")) {
                             success = true;
                             break;
                         }
                     } catch (Exception e) {
                         System.out.println("AI Attempt " + attempt + " Failed : " + e.getMessage());
+                        logger.warn("BROWSERSTACKAI attempt {} failed. reason={}", attempt, e.getMessage());
                     }
                     Thread.sleep(2000);
                 }
@@ -1481,15 +1526,47 @@ public class Function extends ConnectToDataSheet {
     public static String getOnlyDigit(String Action) { ///////// inside the bracket get only the digit
 
         String digit = null;
-        String s = Action;
         Pattern pattern = Pattern.compile("\\((\\d+)\\)"); // Matches digits enclosed in parentheses
-        Matcher matcher = pattern.matcher(s);
+        Matcher matcher = pattern.matcher(Action);
 
         if (matcher.find()) {
             digit = matcher.group(1); // Extracts the digit(s) within the parentheses
         }
         // System.out.println("digit = " + digit);
         return digit;
+    }
+
+    private static boolean ensureElementPresent(String actionName) {
+        if (element == null) {
+            logger.error("Element is null for action={} at SI_No={}, PropertyName={}, PropertyValue={}",
+                    actionName, Si_No, PropertyName, PropertyValue);
+            return false;
+        }
+        return true;
+    }
+
+    private static void logActionStart(String actionName, String locatorValue) {
+        logger.info("{} started at SI_No={}, locator={}", actionName, Si_No, locatorValue);
+    }
+
+    private static void logActionSuccess(String actionName, String locatorValue) {
+        logger.info("{} succeeded at SI_No={}, locator={}", actionName, Si_No, locatorValue);
+    }
+
+    private static String extractFirstWord(String source, String actionName) {
+        if (source == null || source.trim().isEmpty()) {
+            logger.warn("{} skipped first-word extraction: source text is empty at SI_No={}", actionName, Si_No);
+            return "";
+        }
+
+        String trimmed = source.trim();
+        int idx = trimmed.indexOf(' ');
+        if (idx <= 0) {
+            logger.warn("{} fallback used: no space separator found in text='{}' at SI_No={}",
+                    actionName, trimmed, Si_No);
+            return trimmed;
+        }
+        return trimmed.substring(0, idx);
     }
 
     public static void performHorizontalSwipe(AndroidDriver driver, int startX, int endX, int startY) {
