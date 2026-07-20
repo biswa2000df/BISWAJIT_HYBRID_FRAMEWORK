@@ -44,6 +44,7 @@ import com.aventstack.extentreports.reporter.configuration.Theme;
 import com.codoid.products.fillo.Connection;
 import com.codoid.products.fillo.Fillo;
 import com.codoid.products.fillo.Recordset;
+import com.github.javafaker.Faker;
 
 public class UtilsActivity extends ConnectToDataSheet {
 
@@ -982,7 +983,7 @@ public class UtilsActivity extends ConnectToDataSheet {
 	// ScenarioExecutionReport.xlsx in the project root directory.
 	//
 	// Columns: Si No | Date | ScenarioID | Application | Vertical | Scenario
-	// | Status | Failed At | Time
+	// | Status | Failed At | Time | Tested By
 	//
 	// Rules:
 	// - If the file does NOT exist → create it with a header row then add data.
@@ -1007,6 +1008,12 @@ public class UtilsActivity extends ConnectToDataSheet {
 
 		// Today's date string — e.g. "09/06/2026"
 		String todayDate = new java.text.SimpleDateFormat("dd/MM/yyyy").format(new java.util.Date());
+
+		String sapCode = System.getProperty("SAPCODE");
+		String userDirName = (sapCode != null && !sapCode.trim().isEmpty())
+				? sapCode
+				: System.getProperty("user.name").toUpperCase();
+		String testedBy = Android_IOS_Driver.GetUserName(userDirName);
 
 		// Application name (safe default)
 		String appName = (ConnectToMainController.ApplicationName != null
@@ -1092,6 +1099,7 @@ public class UtilsActivity extends ConnectToDataSheet {
 			dataRow.createCell(6).setCellValue(statusDisplay); // Status
 			dataRow.createCell(7).setCellValue(failedAt); // Failed At (empty if PASS)
 			dataRow.createCell(8).setCellValue(execTime); // Time
+			dataRow.createCell(9).setCellValue(testedBy); // Tested By
 
 			System.out.println("📝 Audit row " + siNo + " written: [" + r.scenarioNo + "] " + statusDisplay);
 			logger.info("Audit row {} written: ScenarioID={}, Status={}, FailedAt={}", siNo, r.scenarioNo,
@@ -1132,7 +1140,7 @@ public class UtilsActivity extends ConnectToDataSheet {
 		headerStyle.setAlignment(org.apache.poi.ss.usermodel.HorizontalAlignment.CENTER);
 
 		String[] headers = { "Si No", "Date", "ScenarioID", "Application", "Vertical", "Scenario", "Status",
-				"Failed At", "Time" };
+				"Failed At", "Time", "Tested By" };
 
 		for (int i = 0; i < headers.length; i++) {
 			org.apache.poi.xssf.usermodel.XSSFCell cell = headerRow.createCell(i);
@@ -1141,5 +1149,6 @@ public class UtilsActivity extends ConnectToDataSheet {
 			sheet.autoSizeColumn(i);
 		}
 	}
+
 
 }
