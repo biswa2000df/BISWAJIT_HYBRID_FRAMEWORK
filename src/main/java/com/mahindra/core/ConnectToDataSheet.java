@@ -11,6 +11,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.WebElement;
 
+import java.io.File;
 import java.util.*;
 
 public class ConnectToDataSheet extends Android_IOS_Driver {
@@ -60,6 +61,11 @@ public class ConnectToDataSheet extends Android_IOS_Driver {
 	// ✅ OPTIMIZATION: Cached test data rows from TestData.xlsx (loaded once)
 	private static List<Map<String, String>> cachedTestDataRows = null;
 
+	// ✅ OPTIMIZATION: LocatorHub cache — entire LocatorsHub.xlsx loaded ONCE into memory.
+	// Key = LocatorName (e.g. "proceedBtn"), Value = LocatorValue (e.g. "//*[text()='Proceed']")
+	// null  → not yet loaded;  empty map → file missing / sheet empty (pass-through mode)
+	private static Map<String, String> locatorHubCache = null;
+
 	public final static Logger logger = LogManager.getLogger(ConnectToDataSheet.class.getName());
 
 	/**
@@ -96,6 +102,10 @@ public class ConnectToDataSheet extends Android_IOS_Driver {
 
 			// ✅ OPTIMIZATION: Cache ALL test data rows from TestData.xlsx ONCE
 			cacheAllTestDataRows();
+
+			// ✅ OPTIMIZATION: Load entire LocatorsHub.xlsx into HashMap ONCE
+			// All getLocatorValue() calls become O(1) in-memory lookups — zero file I/O per step
+			loadLocatorHubCache();
 
 			// ══════════════════════════════════════════════════════════════
 			// Sheet2 Data-Row Loop (iterates test data, executes same steps)
@@ -146,7 +156,7 @@ public class ConnectToDataSheet extends Android_IOS_Driver {
 					PageName = row.getOrDefault("PageName", "");
 					RunStatus = row.getOrDefault("RunStatus", "");
 					PropertyName = row.getOrDefault("PropertyName", "");
-					PropertyValue = row.getOrDefault("PropertyValue", "");
+					PropertyValue = getLocatorValue(row.getOrDefault("PropertyValue", ""));
 					DataField = row.getOrDefault("DataField", "");
 					Action = row.getOrDefault("Action", "");
 					ActionType = row.getOrDefault("ActionType", "");
@@ -574,6 +584,165 @@ public class ConnectToDataSheet extends Android_IOS_Driver {
 
 		// System.out.println(logMessage);
 		logger.info("\n{}\n", logMessage);
+	}
+
+	// ══════════════════════════════════════════════════════════════════════════
+	// ✅ LOCATOR HUB — Dynamic Locator Resolution (Cache-First, Zero I/O per step)
+	// ══════════════════════════════════════════════════════════════════════════
+	/**
+	 * Loads the <b>entire</b> LocatorsHub.xlsx into {@code locatorHubCache} exactly <b>once</b>
+	 * per process execution (called from {@link #extractAllData}).
+	 *
+	 * <p>Strategy — identical to {@link #cacheAllTestDataRows}:
+	 * <ul>
+	 *   <li>Open the file once → read all rows → store in {@code HashMap<LocatorName, LocatorValue>} → close file.</li>
+	 *   <li>All subsequent {@link #getLocatorValue} calls are pure in-memory map lookups — <b>zero file I/O</b>.</li>
+	 *   <li>If the file is missing, unreadable, or the sheet is empty, the cache is set to an empty map
+	 *       so {@code getLocatorValue()} silently falls back to pass-through mode.</li>
+	 * </ul>
+	 *
+	 * <p>LocatorsHub.xlsx path resolution (highest priority wins):
+	 * <ol>
+	 *   <li>JVM property {@code -DuserInputLocatorHub} — absolute or relative path to the file</li>
+	 *   <li>Auto-derived: {@code <dataSheetFolderPath>/LocatorsHub.xlsx} (same base folder as DataSheets)</li>
+	 *   <li>Fallback: {@code <user.dir>/DataSheet/LocatorsHub.xlsx}</li>
+	 * </ol>
+	 *
+	 * <p>Expected sheet name: {@code LocatorHub} &nbsp;|&nbsp; Expected columns: {@code LocatorName}, {@code LocatorValue}
+	 */
+	private static void loadLocatorHubCache() {
+
+		locatorHubCache = new java.util.HashMap<>();   // always initialise — even on failure → pass-through mode
+
+		// ── Resolve path ──
+		String locatorHubPath = resolveLocatorHubPath();
+
+		// ── Guard: file doesn't exist ──
+		File hubFile = new File(locatorHubPath);
+		if (!hubFile.exists() || !hubFile.isFile()) {
+			logger.info("[LocatorHub] LocatorsHub.xlsx not found at '{}'. All PropertyValues will be used as-is.",
+					locatorHubPath);
+			System.out.println("[LocatorHub] LocatorsHub.xlsx not found → pass-through mode active.");
+			return;
+		}
+
+		// ── Load once ──
+		Fillo fillo = new Fillo();
+		Connection connection = null;
+		Recordset rs = null;
+
+		try {
+			connection = fillo.getConnection(locatorHubPath);
+			rs = connection.executeQuery("SELECT LocatorName, LocatorValue FROM LocatorHub");
+
+			int count = 0;
+			while (rs.next()) {
+				String name  = rs.getField("LocatorName");
+				String value = rs.getField("LocatorValue");
+				if (name != null && !name.trim().isEmpty()) {
+					locatorHubCache.put(name.trim(), value != null ? value.trim() : "");
+					count++;
+				}
+			}
+
+			logger.info("[LocatorHub] Cache loaded: {} locator(s) from '{}'", count, locatorHubPath);
+			System.out.println("[LocatorHub] ✅ Cache loaded: " + count + " locator(s) from LocatorsHub.xlsx");
+
+		} catch (FilloException e) {
+			logger.warn("[LocatorHub] Could not load LocatorsHub.xlsx (Fillo error). Pass-through mode active. Reason: {}",
+					e.getMessage());
+			System.out.println("[LocatorHub] ⚠️ Could not load LocatorsHub.xlsx → pass-through mode. Reason: " + e.getMessage());
+		} catch (Exception e) {
+			logger.warn("[LocatorHub] Unexpected error loading LocatorsHub.xlsx. Pass-through mode active. Reason: {}",
+					e.getMessage());
+			System.out.println("[LocatorHub] ⚠️ Unexpected error loading LocatorsHub.xlsx → pass-through mode.");
+		} finally {
+			if (rs != null)         rs.close();
+			if (connection != null) connection.close();
+		}
+	}
+
+	/**
+	 * Resolves a PropertyValue through the in-memory LocatorHub cache.
+	 *
+	 * <p><b>This method does ZERO file I/O.</b> The cache is loaded once by
+	 * {@link #loadLocatorHubCache()} before the step loop starts.
+	 *
+	 * <p>Lookup rules:
+	 * <ul>
+	 *   <li>If {@code locatorName} is a key in the cache → return the mapped {@code LocatorValue}.</li>
+	 *   <li>If not found (or cache is empty / null) → return {@code locatorName} unchanged.
+	 *       Hard-coded XPath / ID values in the DataSheet continue to work with no changes.</li>
+	 * </ul>
+	 *
+	 * <p>Example:
+	 * <pre>
+	 * Sheet1 PropertyValue = "proceedBtn"
+	 *   → cache hit  → returns "//*[text()='Proceed']"   ✅
+	 *
+	 * Sheet1 PropertyValue = "//button[@id='login']"
+	 *   → cache miss → returns "//button[@id='login']"   ✅ (unchanged)
+	 * </pre>
+	 *
+	 * @param  locatorName the raw value read from Sheet1 PropertyValue column
+	 * @return the resolved locator string, or the original input if not found in the hub
+	 */
+	public static String getLocatorValue(String locatorName) {
+
+		// ── Guard: null / blank → return as-is ──
+		if (locatorName == null || locatorName.trim().isEmpty()) {
+			return locatorName;
+		}
+
+		// ── Guard: cache not loaded (safety net — should never happen in normal flow) ──
+		if (locatorHubCache == null || locatorHubCache.isEmpty()) {
+			return locatorName;   // pass-through: file was missing or empty
+		}
+
+		// ── O(1) HashMap lookup — zero file I/O ──
+		String resolvedValue = locatorHubCache.get(locatorName.trim());
+
+		if (resolvedValue != null && !resolvedValue.isEmpty()) {
+			logger.info("[LocatorHub] '{}' → '{}'", locatorName, resolvedValue);
+//			System.out.println("[LocatorHub]      ====================> '" + locatorName
+//					+ "' resolved to '" + resolvedValue + "'");
+			return resolvedValue;
+		}
+
+		// ── Not in hub → return original value unchanged (pass-through) ──
+		logger.debug("[LocatorHub] '{}' not found in cache. Using value as-is.", locatorName);
+		return locatorName;
+	}
+
+	/**
+	 * Resolves the absolute path to LocatorsHub.xlsx (priority order):
+	 * <ol>
+	 *   <li>{@code -DuserInputLocatorHub} JVM property (absolute or relative to {@code user.dir})</li>
+	 *   <li>{@code ConnectToMainController.dataSheetFolderPath}/LocatorsHub.xlsx</li>
+	 *   <li>{@code <user.dir>/DataSheet/LocatorsHub.xlsx} (safe fallback)</li>
+	 * </ol>
+	 */
+	private static String resolveLocatorHubPath() {
+
+		// Priority 1 — explicit CLI override
+		String userInputLocatorHub = System.getProperty("userInputLocatorHub");
+		if (userInputLocatorHub != null && !userInputLocatorHub.trim().isEmpty()) {
+			File f = new File(userInputLocatorHub.trim());
+			return f.isAbsolute() ? f.getAbsolutePath()
+					: System.getProperty("user.dir") + File.separator + userInputLocatorHub.trim();
+		}
+
+		// Priority 2 — auto-derive from dataSheetFolderPath
+		if (ConnectToMainController.dataSheetFolderPath != null
+				&& !ConnectToMainController.dataSheetFolderPath.trim().isEmpty()) {
+			return ConnectToMainController.dataSheetFolderPath
+					+ File.separator + "LocatorsHub.xlsx";
+		}
+
+		// Priority 3 — safe fallback
+		return System.getProperty("user.dir")
+				+ File.separator + "DataSheet"
+				+ File.separator + "LocatorsHub.xlsx";
 	}
 
 }
