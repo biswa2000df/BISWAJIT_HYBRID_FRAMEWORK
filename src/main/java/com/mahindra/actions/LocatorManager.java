@@ -244,6 +244,7 @@ public class LocatorManager extends ConnectToDataSheet {
 				if (!Action.equalsIgnoreCase("CheckVisibility")) {
 					try {
 						utilsActivity.withOutValidationFailTestCase(lastException);
+						ConnectToDataSheet.extractTestData();// if element is failed, then also call to extractTestData() method.
 					} catch (Exception utilEx) {
 						logger.error("❌ Fail screenshot error: {}", utilEx.getMessage());
 					}
