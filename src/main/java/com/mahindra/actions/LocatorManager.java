@@ -431,6 +431,13 @@ public class LocatorManager extends ConnectToDataSheet {
 
 			if (failedPassedLocatorCount >= Integer.parseInt(ConnectToMainController.RepeatedFailed)) {
 				isElementFailedReachedMaxLimit = true;
+				if (driver != null) {
+					try {
+						driver.quit();
+					} catch (Exception e) {
+						logger.warn("⚠️ Driver Quit failed: {}", e.getMessage());
+					}
+				}
 				ConnectToMainController.currentScenarioAborted = true;
 				ConnectToDataSheet.scenarioHasFailed = true;
 				// ── Record the process/file that triggered the abort ──
